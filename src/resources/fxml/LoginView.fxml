@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefWidth="1100" prefHeight="700"
+            style="-fx-background-color: #F5EFE6;"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.kafepos.LoginController">
+
+    <HBox alignment="CENTER" spacing="0"
+          AnchorPane.topAnchor="0"
+          AnchorPane.bottomAnchor="0"
+          AnchorPane.leftAnchor="0"
+          AnchorPane.rightAnchor="0">
+
+        <!-- LEFT PANEL -->
+        <VBox alignment="CENTER" spacing="20"
+              prefWidth="550"
+              style="-fx-background-color: #2B211D;"
+              HBox.hgrow="ALWAYS">
+
+            <VBox alignment="CENTER" spacing="12">
+                <Label text="KAFEPOS"
+                       style="-fx-font-size: 42px;
+                              -fx-font-weight: bold;
+                              -fx-text-fill: #F5EFE6;"/>
+
+                <Label text="Manage your cafe with ease."
+                       style="-fx-font-size: 16px;
+                              -fx-text-fill: #D8C6B5;"/>
+            </VBox>
+
+            <Region prefHeight="30"/>
+
+            <Label text="BREW. SERVE. REPEAT."
+                   style="-fx-font-size: 13px;
+                          -fx-letter-spacing: 3px;
+                          -fx-text-fill: #B99A7A;"/>
+        </VBox>
+
+        <!-- RIGHT PANEL -->
+        <VBox alignment="CENTER"
+              spacing="22"
+              prefWidth="550"
+              style="-fx-background-color: #F5EFE6;"
+              HBox.hgrow="ALWAYS">
+
+            <VBox spacing="10" maxWidth="350">
+                <Label text="Welcome Back!"
+                       style="-fx-font-size: 32px;
+                              -fx-font-weight: bold;
+                              -fx-text-fill: #2B211D;"/>
+
+                <Label text="Sign in to your KAFEPOS account"
+                       style="-fx-font-size: 14px;
+                              -fx-text-fill: #8B7768;"/>
+            </VBox>
+
+            <VBox spacing="8" maxWidth="350">
+                <Label text="Username"
+                       style="-fx-font-size: 13px;
+                              -fx-font-weight: bold;
+                              -fx-text-fill: #2B211D;"/>
+
+                <TextField fx:id="usernameField"
+                           promptText="Enter your username"
+                           prefHeight="45"
+                           style="-fx-background-color: white;
+                                  -fx-background-radius: 8;
+                                  -fx-border-color: #D8C6B5;
+                                  -fx-border-radius: 8;"/>
+            </VBox>
+
+            <VBox spacing="8" maxWidth="350">
+                <Label text="Password"
+                       style="-fx-font-size: 13px;
+                              -fx-font-weight: bold;
+                              -fx-text-fill: #2B211D;"/>
+
+                <PasswordField fx:id="passwordField"
+                               promptText="Enter your password"
+                               prefHeight="45"
+                               style="-fx-background-color: white;
+                                      -fx-background-radius: 8;
+                                      -fx-border-color: #D8C6B5;
+                                      -fx-border-radius: 8;"/>
+            </VBox>
+
+            <Label fx:id="errorLabel"
+                   text=""
+                   maxWidth="350"
+                   wrapText="true"
+                   style="-fx-text-fill: #B94A48;
+                          -fx-font-size: 12px;"/>
+
+            <Button text="Sign In"
+                    onAction="#handleLogin"
+                    prefWidth="350"
+                    prefHeight="48"
+                    style="-fx-background-color: #8B6B4F;
+                           -fx-background-radius: 8;
+                           -fx-text-fill: white;
+                           -fx-font-size: 15px;
+                           -fx-font-weight: bold;
+                           -fx-cursor: hand;"/>
+
+            <Label text="KAFEPOS © 2026"
+                   style="-fx-font-size: 11px;
+                          -fx-text-fill: #A8988B;"/>
+        </VBox>
+    </HBox>
+</AnchorPane>

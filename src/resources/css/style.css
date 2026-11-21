@@ -1,0 +1,209 @@
+
+/* GENERAL */
+.app-root {
+    -fx-font-family: "Segoe UI";
+    -fx-background-color: #F5EFE6;
+}
+
+/* TOP HEADER */
+.topbar {
+    -fx-background-color: #FFFFFF;
+    -fx-padding: 18px 30px;
+    -fx-border-color: transparent transparent #EAE3DC transparent;
+}
+
+.brand-title {
+    -fx-font-size: 25px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2B211D;
+}
+
+.brand-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: #9A8D82;
+    -fx-letter-spacing: 1px;
+}
+
+.admin-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #6B5142;
+}
+
+/* SIDEBAR */
+.sidebar {
+    -fx-background-color: #2B211D;
+    -fx-padding: 28px 18px;
+}
+
+.sidebar-caption {
+    -fx-text-fill: #A99A8D;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 10px;
+}
+
+.sidebar-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #D9CEC4;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 13px 15px;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+    -fx-pref-width: 184px;
+}
+
+.sidebar-button:hover {
+    -fx-background-color: #49382F;
+    -fx-text-fill: #FFFFFF;
+}
+
+.sidebar-button.active {
+    -fx-background-color: #8B6B4F;
+    -fx-text-fill: #FFFFFF;
+}
+
+.sidebar-footer {
+    -fx-text-fill: #A99A8D;
+    -fx-font-size: 10px;
+    -fx-padding: 12px 5px;
+}
+
+/* MAIN CONTENT */
+.main-scroll {
+    -fx-background-color: #F5EFE6;
+    -fx-background: #F5EFE6;
+    -fx-border-color: transparent;
+}
+
+.main-scroll > .viewport {
+    -fx-background-color: #F5EFE6;
+}
+
+.dashboard-content {
+    -fx-background-color: #F5EFE6;
+    -fx-padding: 32px;
+}
+
+.page-title {
+    -fx-font-size: 27px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2B211D;
+}
+
+.page-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #8A817C;
+}
+
+/* STATISTIC CARDS */
+.stat-card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 12px;
+    -fx-padding: 20px;
+    -fx-pref-width: 205px;
+    -fx-pref-height: 130px;
+    -fx-effect: dropshadow(gaussian, rgba(43,33,29,0.07), 12, 0, 0, 3);
+}
+
+.stat-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #8A817C;
+}
+
+.stat-value {
+    -fx-font-size: 23px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2B211D;
+}
+
+.stat-note {
+    -fx-font-size: 11px;
+    -fx-text-fill: #8B6B4F;
+}
+
+/* SECTIONS */
+.content-section {
+    -fx-background-color: transparent;
+}
+
+.section-title {
+    -fx-font-size: 19px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2B211D;
+}
+
+.section-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: #8A817C;
+}
+
+/* TRANSACTION TABLE */
+.transaction-table {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 10px;
+    -fx-border-color: #EAE3DC;
+    -fx-border-radius: 10px;
+    -fx-padding: 5px;
+}
+
+.transaction-table .column-header-background {
+    -fx-background-color: #EDE4D9;
+}
+
+.transaction-table .column-header {
+    -fx-background-color: #EDE4D9;
+    -fx-size: 42px;
+    -fx-border-color: transparent transparent #E0D5CA transparent;
+}
+
+.transaction-table .column-header .label {
+    -fx-text-fill: #3B2F29;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.transaction-table .table-cell {
+    -fx-text-fill: #3B2F29;
+    -fx-font-size: 12px;
+    -fx-border-color: transparent transparent #F0EBE5 transparent;
+    -fx-padding: 12px;
+}
+
+.transaction-table .table-row-cell:odd {
+    -fx-background-color: #FCFAF7;
+}
+
+.transaction-table .table-row-cell:even {
+    -fx-background-color: #FFFFFF;
+}
+
+/* POPULAR PRODUCTS */
+.product-card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 12px;
+    -fx-padding: 20px;
+    -fx-pref-width: 240px;
+    -fx-pref-height: 115px;
+    -fx-effect: dropshadow(gaussian, rgba(43,33,29,0.06), 10, 0, 0, 3);
+}
+
+.product-number {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #A88B6B;
+}
+
+.product-name {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2B211D;
+}
+
+.product-detail {
+    -fx-font-size: 11px;
+    -fx-text-fill: #8A817C;
+}
