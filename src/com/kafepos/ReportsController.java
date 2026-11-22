@@ -4,8 +4,19 @@ package com.kafepos;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.NumberFormat;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import javafx.fxml.FXML;
 import javafx.scene.chart.BarChart;
@@ -18,73 +29,58 @@ import javafx.stage.Stage;
 
 public class ReportsController {
 
-    @FXML
-    private ComboBox<String> periodFilter;
+    @FXML private ComboBox<String> periodFilter;
 
-    @FXML
-    private Label totalRevenueLabel;
+    @FXML private Label totalRevenueLabel;
+    @FXML private Label totalOrdersLabel;
+    @FXML private Label averageOrderValueLabel;
+    @FXML private Label revenueSubtitleLabel;
 
-    @FXML
-    private Label totalOrdersLabel;
+    @FXML private BarChart<String, Number> revenueChart;
+    @FXML private BarChart<String, Number> topProductsChart;
 
-    @FXML
-    private Label averageOrderValueLabel;
+    @FXML private Label cashAmountLabel;
+    @FXML private Label cardAmountLabel;
+    @FXML private Label qrisAmountLabel;
 
-    @FXML
-    private Label revenueSubtitleLabel;
+    @FXML private Label cashPercentLabel;
+    @FXML private Label cardPercentLabel;
+    @FXML private Label qrisPercentLabel;
 
-    @FXML
-    private BarChart<String, Number> revenueChart;
+    @FXML private ProgressBar cashProgress;
+    @FXML private ProgressBar cardProgress;
+    @FXML private ProgressBar qrisProgress;
 
-    @FXML
-    private BarChart<String, Number> topProductsChart;
+    @FXML private Label revenueGrowthLabel;
+    @FXML private Label orderGrowthLabel;
 
-    @FXML
-    private Label cashAmountLabel;
-
-    @FXML
-    private Label cardAmountLabel;
-
-    @FXML
-    private Label qrisAmountLabel;
-
-    @FXML
-    private Label cashPercentLabel;
-
-    @FXML
-    private Label cardPercentLabel;
-
-    @FXML
-    private Label qrisPercentLabel;
-
-    @FXML
-    private ProgressBar cashProgress;
-
-    @FXML
-    private ProgressBar cardProgress;
-
-    @FXML
-    private ProgressBar qrisProgress;
-
-    @FXML
-    private Label revenueGrowthLabel;
-
-    @FXML
-    private Label orderGrowthLabel;
-
-    private final NumberFormat rupiahFormat =
-            NumberFormat.getNumberInstance(
-                    Locale.forLanguageTag("id-ID"));
+    private int kafeId;
 
     private double currentRevenue;
     private int currentOrders;
 
-    private double cashPercentage;
-    private double cardPercentage;
-    private double qrisPercentage;
+    private double cashRevenue;
+    private double cardRevenue;
+    private double qrisRevenue;
 
     private double revenueGrowth;
     private double orderGrowth;
+
+    private final NumberFormat rupiahFormat =
+            NumberFormat.getNumberInstance(
+                    Locale.forLanguageTag("id-ID")
+            );
+
+    private final Map<String, Double> revenueData =
+            new LinkedHashMap<>();
+
+    private final Map<String, Integer> productData =
+            new LinkedHashMap<>();
+
+    public void setKafeId(int kafeId) {
+        this.kafeId = kafeId;
+        updateReport();
+    }
 
     @FXML
     public void initialize() {
@@ -92,336 +88,864 @@ public class ReportsController {
         periodFilter.setValue("This Month");
 
         periodFilter.setOnAction(event -> updateReport());
-
-        updateReport();
     }
+
+    // =========================================
+    // DATE RANGE
+    // =========================================
+
+    private LocalDate getStartDate(String period) {
+
+        LocalDate today = LocalDate.now();
+
+        switch (period) {
+
+            case "Today":
+                return today;
+
+            case "This Week":
+                return today.with(
+                        DayOfWeek.MONDAY
+                );
+
+            case "This Month":
+                return today.withDayOfMonth(1);
+
+            case "This Year":
+                return today.withDayOfYear(1);
+
+            default:
+                return today.withDayOfMonth(1);
+        }
+    }
+
+    private LocalDate getEndDate() {
+        return LocalDate.now().plusDays(1);
+    }
+
+    private LocalDate getPreviousStartDate(String period) {
+
+        LocalDate start = getStartDate(period);
+
+        switch (period) {
+
+            case "Today":
+                return start.minusDays(1);
+
+            case "This Week":
+                return start.minusWeeks(1);
+
+            case "This Month":
+                return start.minusMonths(1);
+
+            case "This Year":
+                return start.minusYears(1);
+
+            default:
+                return start.minusMonths(1);
+        }
+    }
+
+    private LocalDate getPreviousEndDate(String period) {
+
+        LocalDate start = getStartDate(period);
+
+        switch (period) {
+
+            case "Today":
+                return start;
+
+            case "This Week":
+                return start;
+
+            case "This Month":
+                return start;
+
+            case "This Year":
+                return start;
+
+            default:
+                return start;
+        }
+    }
+
+    // =========================================
+    // UPDATE REPORT
+    // =========================================
 
     private void updateReport() {
 
+        if (kafeId <= 0) {
+            return;
+        }
+
         String period = periodFilter.getValue();
+
+        LocalDate startDate =
+                getStartDate(period);
+
+        LocalDate endDate =
+                getEndDate();
+
+        LocalDate previousStart =
+                getPreviousStartDate(period);
+
+        LocalDate previousEnd =
+                getPreviousEndDate(period);
 
         currentRevenue = 0;
         currentOrders = 0;
 
+        cashRevenue = 0;
+        cardRevenue = 0;
+        qrisRevenue = 0;
+
+        revenueGrowth = 0;
+        orderGrowth = 0;
+
+        revenueData.clear();
+        productData.clear();
+
         revenueChart.getData().clear();
         topProductsChart.getData().clear();
 
-        XYChart.Series<String, Number> revenueSeries =
-                new XYChart.Series<>();
+        try {
 
-        XYChart.Series<String, Number> productSeries =
-                new XYChart.Series<>();
+            loadSummary(startDate, endDate);
 
-        revenueSeries.setName("Revenue");
-        productSeries.setName("Products Sold");
+            loadRevenueChart(
+                    startDate,
+                    endDate,
+                    period
+            );
 
-        // =================================
-        // TODAY
-        // =================================
+            loadTopProducts(
+                    startDate,
+                    endDate
+            );
 
-        if ("Today".equals(period)) {
+            loadGrowth(
+                    previousStart,
+                    previousEnd
+            );
 
-            currentRevenue = 3200000;
-            currentOrders = 32;
-
-            revenueSubtitleLabel.setText(
-                    "Revenue performance today");
-
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("09:00", 500000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("12:00", 850000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("15:00", 650000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("18:00", 1200000));
-
-            productSeries.getData().add(
-                    new XYChart.Data<>("Coffee", 18));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Latte", 14));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Tea", 10));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Cake", 8));
-
-            cashPercentage = 0.30;
-            cardPercentage = 0.20;
-            qrisPercentage = 0.50;
-
-            revenueGrowth = 5.2;
-            orderGrowth = 3.5;
-
-        // =================================
-        // THIS WEEK
-        // =================================
-
-        } else if ("This Week".equals(period)) {
-
-            currentRevenue = 14500000;
-            currentOrders = 148;
+            updateSummaryCards();
+            updatePaymentSummary();
+            updateSalesPerformance();
+            updateCharts();
 
             revenueSubtitleLabel.setText(
-                    "Revenue performance this week");
+                    "Revenue performance " +
+                    period.toLowerCase()
+            );
 
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Mon", 1500000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Tue", 1800000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Wed", 1200000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Thu", 2100000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Fri", 2500000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Sat", 3000000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Sun", 2400000));
+        } catch (SQLException e) {
 
-            productSeries.getData().add(
-                    new XYChart.Data<>("Coffee", 85));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Latte", 72));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Tea", 54));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Cake", 43));
+            e.printStackTrace();
+        }
+    }
 
-            cashPercentage = 0.35;
-            cardPercentage = 0.25;
-            qrisPercentage = 0.40;
+    // =========================================
+    // SUMMARY
+    // =========================================
 
-            revenueGrowth = 9.8;
-            orderGrowth = 7.4;
+    private void loadSummary(
+            LocalDate startDate,
+            LocalDate endDate
+    ) throws SQLException {
 
-        // =================================
-        // THIS MONTH
-        // =================================
+        String sql = """
+                SELECT
+                    COUNT(id) AS total_orders,
+                    COALESCE(SUM(total), 0) AS total_revenue
+                FROM transaksi
+                WHERE kafe_id = ?
+                AND tanggal >= ?
+                AND tanggal < ?
+                """;
 
-        } else if ("This Month".equals(period)) {
+        try (
+                Connection connection =
+                        DatabaseConnection.getConnection();
 
-            currentRevenue = 16500000;
-            currentOrders = 168;
+                PreparedStatement statement =
+                        connection.prepareStatement(sql)
+        ) {
 
-            revenueSubtitleLabel.setText(
-                    "Revenue performance this month");
+            statement.setInt(1, kafeId);
 
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Week 1", 3500000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Week 2", 4200000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Week 3", 3800000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Week 4", 5000000));
+            statement.setTimestamp(
+                    2,
+                    Timestamp.valueOf(
+                            startDate.atStartOfDay()
+                    )
+            );
 
-            productSeries.getData().add(
-                    new XYChart.Data<>("Coffee", 120));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Latte", 105));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Tea", 82));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Cake", 65));
+            statement.setTimestamp(
+                    3,
+                    Timestamp.valueOf(
+                            endDate.atStartOfDay()
+                    )
+            );
 
-            cashPercentage = 0.30;
-            cardPercentage = 0.20;
-            qrisPercentage = 0.50;
+            try (ResultSet rs = statement.executeQuery()) {
 
-            revenueGrowth = 12.5;
-            orderGrowth = 8.2;
+                if (rs.next()) {
 
-        // =================================
-        // THIS YEAR
-        // =================================
+                    currentOrders =
+                            rs.getInt("total_orders");
 
-        } else if ("This Year".equals(period)) {
-
-            currentRevenue = 86000000;
-            currentOrders = 890;
-
-            revenueSubtitleLabel.setText(
-                    "Revenue performance this year");
-
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Jan", 12000000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Feb", 14000000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Mar", 11000000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Apr", 16000000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("May", 18000000));
-            revenueSeries.getData().add(
-                    new XYChart.Data<>("Jun", 15000000));
-
-            productSeries.getData().add(
-                    new XYChart.Data<>("Coffee", 650));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Latte", 580));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Tea", 420));
-            productSeries.getData().add(
-                    new XYChart.Data<>("Cake", 350));
-
-            cashPercentage = 0.32;
-            cardPercentage = 0.23;
-            qrisPercentage = 0.45;
-
-            revenueGrowth = 18.6;
-            orderGrowth = 14.3;
+                    currentRevenue =
+                            rs.getDouble("total_revenue");
+                }
+            }
         }
 
-        // =================================
-        // SUMMARY CARDS
-        // =================================
+        loadPaymentRevenue(
+                startDate,
+                endDate
+        );
+    }
+
+    // =========================================
+    // PAYMENT REVENUE
+    // =========================================
+
+    private void loadPaymentRevenue(
+            LocalDate startDate,
+            LocalDate endDate
+    ) throws SQLException {
+
+        String sql = """
+                SELECT
+                    metode_pembayaran,
+                    COALESCE(SUM(total), 0) AS revenue
+                FROM transaksi
+                WHERE kafe_id = ?
+                AND tanggal >= ?
+                AND tanggal < ?
+                GROUP BY metode_pembayaran
+                """;
+
+        try (
+                Connection connection =
+                        DatabaseConnection.getConnection();
+
+                PreparedStatement statement =
+                        connection.prepareStatement(sql)
+        ) {
+
+            statement.setInt(1, kafeId);
+
+            statement.setTimestamp(
+                    2,
+                    Timestamp.valueOf(
+                            startDate.atStartOfDay()
+                    )
+            );
+
+            statement.setTimestamp(
+                    3,
+                    Timestamp.valueOf(
+                            endDate.atStartOfDay()
+                    )
+            );
+
+            try (ResultSet rs = statement.executeQuery()) {
+
+                while (rs.next()) {
+
+                    String method =
+                            rs.getString(
+                                    "metode_pembayaran"
+                            );
+
+                    double amount =
+                            rs.getDouble("revenue");
+
+                    if (method == null) {
+                        continue;
+                    }
+
+                    switch (
+                            method.trim().toLowerCase()
+                    ) {
+
+                        case "cash":
+                            cashRevenue += amount;
+                            break;
+
+                        case "qris":
+                            qrisRevenue += amount;
+                            break;
+
+                        case "debit":
+                        case "credit":
+                        case "card":
+                            cardRevenue += amount;
+                            break;
+                    }
+                }
+            }
+        }
+    }
+
+    // =========================================
+    // REVENUE CHART
+    // =========================================
+
+    private void loadRevenueChart(
+            LocalDate startDate,
+            LocalDate endDate,
+            String period
+    ) throws SQLException {
+
+        String sql = """
+                SELECT tanggal, total
+                FROM transaksi
+                WHERE kafe_id = ?
+                AND tanggal >= ?
+                AND tanggal < ?
+                ORDER BY tanggal
+                """;
+
+        try (
+                Connection connection =
+                        DatabaseConnection.getConnection();
+
+                PreparedStatement statement =
+                        connection.prepareStatement(sql)
+        ) {
+
+            statement.setInt(1, kafeId);
+
+            statement.setTimestamp(
+                    2,
+                    Timestamp.valueOf(
+                            startDate.atStartOfDay()
+                    )
+            );
+
+            statement.setTimestamp(
+                    3,
+                    Timestamp.valueOf(
+                            endDate.atStartOfDay()
+                    )
+            );
+
+            try (ResultSet rs = statement.executeQuery()) {
+
+                while (rs.next()) {
+
+                    Timestamp timestamp =
+                            rs.getTimestamp("tanggal");
+
+                    if (timestamp == null) {
+                        continue;
+                    }
+
+                    LocalDateTime dateTime =
+                            timestamp.toLocalDateTime();
+
+                    String label;
+
+                    switch (period) {
+
+                        case "Today":
+                            label = String.format(
+                                    "%02d:00",
+                                    dateTime.getHour()
+                            );
+                            break;
+
+                        case "This Year":
+                            label = dateTime.getMonth()
+                                    .getDisplayName(
+                                            java.time.format.TextStyle.SHORT,
+                                            Locale.ENGLISH
+                                    );
+                            break;
+
+                        default:
+                            label = dateTime.toLocalDate()
+                                    .toString();
+                            break;
+                    }
+
+                    double amount =
+                            rs.getDouble("total");
+
+                    revenueData.put(
+                            label,
+                            revenueData.getOrDefault(
+                                    label,
+                                    0.0
+                            ) + amount
+                    );
+                }
+            }
+        }
+    }
+
+    // =========================================
+    // TOP PRODUCTS
+    // =========================================
+
+    private void loadTopProducts(
+            LocalDate startDate,
+            LocalDate endDate
+    ) throws SQLException {
+
+        String sql = """
+                SELECT
+                    d.nama_menu,
+                    SUM(d.jumlah) AS total_sold
+                FROM detail_transaksi d
+                JOIN transaksi t
+                    ON d.transaksi_id = t.id
+                WHERE t.kafe_id = ?
+                AND t.tanggal >= ?
+                AND t.tanggal < ?
+                GROUP BY d.nama_menu
+                ORDER BY total_sold DESC
+                LIMIT 5
+                """;
+
+        try (
+                Connection connection =
+                        DatabaseConnection.getConnection();
+
+                PreparedStatement statement =
+                        connection.prepareStatement(sql)
+        ) {
+
+            statement.setInt(1, kafeId);
+
+            statement.setTimestamp(
+                    2,
+                    Timestamp.valueOf(
+                            startDate.atStartOfDay()
+                    )
+            );
+
+            statement.setTimestamp(
+                    3,
+                    Timestamp.valueOf(
+                            endDate.atStartOfDay()
+                    )
+            );
+
+            try (ResultSet rs = statement.executeQuery()) {
+
+                while (rs.next()) {
+
+                    productData.put(
+                            rs.getString("nama_menu"),
+                            rs.getInt("total_sold")
+                    );
+                }
+            }
+        }
+    }
+
+    // =========================================
+    // GROWTH
+    // =========================================
+
+    private void loadGrowth(
+            LocalDate previousStart,
+            LocalDate previousEnd
+    ) throws SQLException {
+
+        String sql = """
+                SELECT
+                    COUNT(id) AS total_orders,
+                    COALESCE(SUM(total), 0) AS total_revenue
+                FROM transaksi
+                WHERE kafe_id = ?
+                AND tanggal >= ?
+                AND tanggal < ?
+                """;
+
+        double previousRevenue = 0;
+        int previousOrders = 0;
+
+        try (
+                Connection connection =
+                        DatabaseConnection.getConnection();
+
+                PreparedStatement statement =
+                        connection.prepareStatement(sql)
+        ) {
+
+            statement.setInt(1, kafeId);
+
+            statement.setTimestamp(
+                    2,
+                    Timestamp.valueOf(
+                            previousStart.atStartOfDay()
+                    )
+            );
+
+            statement.setTimestamp(
+                    3,
+                    Timestamp.valueOf(
+                            previousEnd.atStartOfDay()
+                    )
+            );
+
+            try (ResultSet rs = statement.executeQuery()) {
+
+                if (rs.next()) {
+
+                    previousOrders =
+                            rs.getInt("total_orders");
+
+                    previousRevenue =
+                            rs.getDouble("total_revenue");
+                }
+            }
+        }
+
+        if (previousRevenue > 0) {
+
+            revenueGrowth =
+                    ((currentRevenue - previousRevenue)
+                    / previousRevenue) * 100;
+        }
+
+        if (previousOrders > 0) {
+
+            orderGrowth =
+                    ((currentOrders - previousOrders)
+                    / (double) previousOrders) * 100;
+        }
+    }
+
+    // =========================================
+    // SUMMARY CARDS
+    // =========================================
+
+    private void updateSummaryCards() {
 
         totalRevenueLabel.setText(
-                "Rp" + rupiahFormat.format(currentRevenue));
+                "Rp" + rupiahFormat.format(
+                        currentRevenue
+                )
+        );
 
         totalOrdersLabel.setText(
-                rupiahFormat.format(currentOrders));
+                rupiahFormat.format(
+                        currentOrders
+                )
+        );
 
-        double averageOrderValue = currentOrders > 0
-                ? currentRevenue / currentOrders
-                : 0;
+        double average =
+                currentOrders > 0
+                        ? currentRevenue / currentOrders
+                        : 0;
 
         averageOrderValueLabel.setText(
-                "Rp" + rupiahFormat.format(averageOrderValue));
+                "Rp" + rupiahFormat.format(
+                        average
+                )
+        );
+    }
 
-        // =================================
-        // PAYMENT SUMMARY
-        // =================================
+    // =========================================
+    // PAYMENT SUMMARY
+    // =========================================
 
-        double cashAmount =
-                currentRevenue * cashPercentage;
+    private void updatePaymentSummary() {
 
-        double cardAmount =
-                currentRevenue * cardPercentage;
+        double total = currentRevenue;
 
-        double qrisAmount =
-                currentRevenue * qrisPercentage;
+        double cashPercentage =
+                total > 0 ? cashRevenue / total : 0;
+
+        double cardPercentage =
+                total > 0 ? cardRevenue / total : 0;
+
+        double qrisPercentage =
+                total > 0 ? qrisRevenue / total : 0;
 
         cashAmountLabel.setText(
-                "Rp" + rupiahFormat.format(cashAmount));
+                "Rp" + rupiahFormat.format(
+                        cashRevenue
+                )
+        );
 
         cardAmountLabel.setText(
-                "Rp" + rupiahFormat.format(cardAmount));
+                "Rp" + rupiahFormat.format(
+                        cardRevenue
+                )
+        );
 
         qrisAmountLabel.setText(
-                "Rp" + rupiahFormat.format(qrisAmount));
+                "Rp" + rupiahFormat.format(
+                        qrisRevenue
+                )
+        );
 
         cashPercentLabel.setText(
-                String.format("%.0f%%", cashPercentage * 100));
+                String.format(
+                        "%.1f%%",
+                        cashPercentage * 100
+                )
+        );
 
         cardPercentLabel.setText(
-                String.format("%.0f%%", cardPercentage * 100));
+                String.format(
+                        "%.1f%%",
+                        cardPercentage * 100
+                )
+        );
 
         qrisPercentLabel.setText(
-                String.format("%.0f%%", qrisPercentage * 100));
+                String.format(
+                        "%.1f%%",
+                        qrisPercentage * 100
+                )
+        );
 
         cashProgress.setProgress(cashPercentage);
         cardProgress.setProgress(cardPercentage);
         qrisProgress.setProgress(qrisPercentage);
-
-        // =================================
-        // SALES PERFORMANCE
-        // =================================
-
-        revenueGrowthLabel.setText(
-                String.format("%+.1f%%", revenueGrowth));
-
-        orderGrowthLabel.setText(
-                String.format("%+.1f%%", orderGrowth));
-
-        // =================================
-        // UPDATE CHARTS
-        // =================================
-
-        revenueChart.getData().add(revenueSeries);
-        topProductsChart.getData().add(productSeries);
     }
 
-    // =================================
+    // =========================================
+    // SALES PERFORMANCE
+    // =========================================
+
+    private void updateSalesPerformance() {
+
+        revenueGrowthLabel.setText(
+                String.format(
+                        "%+.1f%%",
+                        revenueGrowth
+                )
+        );
+
+        orderGrowthLabel.setText(
+                String.format(
+                        "%+.1f%%",
+                        orderGrowth
+                )
+        );
+    }
+
+    // =========================================
+    // CHARTS
+    // =========================================
+
+    private void updateCharts() {
+
+        XYChart.Series<String, Number> revenueSeries =
+                new XYChart.Series<>();
+
+        revenueSeries.setName("Revenue");
+
+        for (
+                Map.Entry<String, Double> entry :
+                revenueData.entrySet()
+        ) {
+
+            revenueSeries.getData().add(
+                    new XYChart.Data<>(
+                            entry.getKey(),
+                            entry.getValue()
+                    )
+            );
+        }
+
+        revenueChart.getData().add(
+                revenueSeries
+        );
+
+        XYChart.Series<String, Number> productSeries =
+                new XYChart.Series<>();
+
+        productSeries.setName("Products Sold");
+
+        for (
+                Map.Entry<String, Integer> entry :
+                productData.entrySet()
+        ) {
+
+            productSeries.getData().add(
+                    new XYChart.Data<>(
+                            entry.getKey(),
+                            entry.getValue()
+                    )
+            );
+        }
+
+        topProductsChart.getData().add(
+                productSeries
+        );
+    }
+
+    // =========================================
     // EXPORT REPORT
-    // =================================
+    // =========================================
 
     @FXML
     private void exportReport() {
 
-        FileChooser fileChooser = new FileChooser();
+        FileChooser fileChooser =
+                new FileChooser();
 
-        fileChooser.setTitle("Export KAFEPOS Report");
+        fileChooser.setTitle(
+                "Export KAFEPOS Report"
+        );
 
         fileChooser.setInitialFileName(
                 "KAFEPOS_Report_" +
-                periodFilter.getValue().replace(" ", "_") +
-                ".csv");
+                periodFilter.getValue()
+                        .replace(" ", "_") +
+                ".csv"
+        );
 
         fileChooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter(
-                        "CSV Files", "*.csv"));
+                        "CSV Files",
+                        "*.csv"
+                )
+        );
 
-        Stage stage = (Stage) revenueChart.getScene().getWindow();
+        Stage stage =
+                (Stage) revenueChart
+                        .getScene()
+                        .getWindow();
 
-        File file = fileChooser.showSaveDialog(stage);
+        File file =
+                fileChooser.showSaveDialog(stage);
 
         if (file == null) {
             return;
         }
 
-        try (FileWriter writer = new FileWriter(file)) {
+        try (
+                FileWriter writer =
+                        new FileWriter(file)
+        ) {
 
-            writer.write("KAFEPOS - BUSINESS REPORT\n");
-            writer.write("Period," + periodFilter.getValue() + "\n\n");
+            writer.write(
+                    "KAFEPOS BUSINESS REPORT\n"
+            );
+
+            writer.write(
+                    "Period," +
+                    periodFilter.getValue() +
+                    "\n\n"
+            );
 
             writer.write("SUMMARY\n");
-            writer.write("Total Revenue," + currentRevenue + "\n");
-            writer.write("Total Orders," + currentOrders + "\n");
-            writer.write("Average Order Value," +
+
+            writer.write(
+                    "Total Revenue," +
+                    currentRevenue +
+                    "\n"
+            );
+
+            writer.write(
+                    "Total Orders," +
+                    currentOrders +
+                    "\n"
+            );
+
+            writer.write(
+                    "Average Order Value," +
                     (currentOrders > 0
-                            ? currentRevenue / currentOrders
-                            : 0) + "\n\n");
+                            ? currentRevenue /
+                              currentOrders
+                            : 0) +
+                    "\n\n"
+            );
 
             writer.write("PAYMENT SUMMARY\n");
-            writer.write("Payment Method,Percentage,Revenue\n");
-            writer.write("Cash," + (cashPercentage * 100) + "%," +
-                    (currentRevenue * cashPercentage) + "\n");
-            writer.write("Card," + (cardPercentage * 100) + "%," +
-                    (currentRevenue * cardPercentage) + "\n");
-            writer.write("QRIS," + (qrisPercentage * 100) + "%," +
-                    (currentRevenue * qrisPercentage) + "\n\n");
 
-            writer.write("SALES PERFORMANCE\n");
-            writer.write("Revenue Growth," + revenueGrowth + "%\n");
-            writer.write("Order Growth," + orderGrowth + "%\n\n");
+            writer.write(
+                    "Payment Method,Revenue\n"
+            );
+
+            writer.write(
+                    "Cash," +
+                    cashRevenue +
+                    "\n"
+            );
+
+            writer.write(
+                    "Card," +
+                    cardRevenue +
+                    "\n"
+            );
+
+            writer.write(
+                    "QRIS," +
+                    qrisRevenue +
+                    "\n\n"
+            );
 
             writer.write("REVENUE BREAKDOWN\n");
-            writer.write("Period,Revenue\n");
 
-            for (XYChart.Data<String, Number> data :
-                    revenueChart.getData().get(0).getData()) {
+            writer.write(
+                    "Period,Revenue\n"
+            );
 
-                writer.write(
-                        data.getXValue() + "," +
-                        data.getYValue() + "\n");
-            }
-
-            writer.write("\nTOP SELLING PRODUCTS\n");
-            writer.write("Product,Units Sold\n");
-
-            for (XYChart.Data<String, Number> data :
-                    topProductsChart.getData().get(0).getData()) {
+            for (
+                    Map.Entry<String, Double> entry :
+                    revenueData.entrySet()
+            ) {
 
                 writer.write(
-                        data.getXValue() + "," +
-                        data.getYValue() + "\n");
+                        entry.getKey() +
+                        "," +
+                        entry.getValue() +
+                        "\n"
+                );
             }
+
+            writer.write(
+                    "\nTOP SELLING PRODUCTS\n"
+            );
+
+            writer.write(
+                    "Product,Units Sold\n"
+            );
+
+            for (
+                    Map.Entry<String, Integer> entry :
+                    productData.entrySet()
+            ) {
+
+                writer.write(
+                        entry.getKey() +
+                        "," +
+                        entry.getValue() +
+                        "\n"
+                );
+            }
+
+            writer.write(
+                    "\nSALES PERFORMANCE\n"
+            );
+
+            writer.write(
+                    "Revenue Growth," +
+                    revenueGrowth +
+                    "%\n"
+            );
+
+            writer.write(
+                    "Order Growth," +
+                    orderGrowth +
+                    "%\n"
+            );
 
             System.out.println(
-                    "Report exported successfully!");
+                    "Report exported successfully!"
+            );
 
         } catch (IOException e) {
 

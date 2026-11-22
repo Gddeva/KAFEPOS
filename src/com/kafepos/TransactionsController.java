@@ -4,7 +4,14 @@ package com.kafepos;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.NumberFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -41,125 +48,310 @@ public class TransactionsController {
     @FXML
     private TableColumn<Transaction, String> statusColumn;
 
+    private int kafeId;
+
+    private final DateTimeFormatter dateFormatter =
+            DateTimeFormatter.ofPattern(
+                    "dd MMM yyyy, HH:mm",
+                    Locale.ENGLISH
+            );
+
+    private final NumberFormat rupiahFormatter =
+            NumberFormat.getIntegerInstance(
+                    new Locale("id", "ID")
+            );
+
+    // INITIALIZE
+
     @FXML
     public void initialize() {
 
         idColumn.setCellValueFactory(
-            new PropertyValueFactory<>("transactionId")
+                new PropertyValueFactory<>("transactionId")
         );
 
         dateColumn.setCellValueFactory(
-            new PropertyValueFactory<>("dateTime")
+                new PropertyValueFactory<>("dateTime")
         );
 
         customerColumn.setCellValueFactory(
-            new PropertyValueFactory<>("customer")
+                new PropertyValueFactory<>("customer")
         );
 
         paymentColumn.setCellValueFactory(
-            new PropertyValueFactory<>("paymentMethod")
+                new PropertyValueFactory<>("paymentMethod")
         );
 
         amountColumn.setCellValueFactory(
-            new PropertyValueFactory<>("amount")
+                new PropertyValueFactory<>("amount")
         );
 
         statusColumn.setCellValueFactory(
-            new PropertyValueFactory<>("status")
+                new PropertyValueFactory<>("status")
         );
 
-        // STATUS BADGES
-        statusColumn.setCellFactory(column -> new TableCell<Transaction, String>() {
+        setupStatusBadge();
+    }
 
-            @Override
-            protected void updateItem(String status, boolean empty) {
-                super.updateItem(status, empty);
+    // SESSION
 
-                if (empty || status == null) {
-                    setGraphic(null);
-                    setText(null);
-                } else {
+    public void setKafeId(int kafeId) {
 
-                    Label badge = new Label(status);
-                    badge.setAlignment(Pos.CENTER);
+        this.kafeId = kafeId;
 
-                    badge.setStyle(
-                        "-fx-padding: 6 12;" +
-                        "-fx-background-radius: 20;" +
-                        "-fx-font-size: 11px;" +
-                        "-fx-font-weight: bold;"
-                    );
+        loadTransactions();
+    }
 
-                    switch (status) {
+    // LOAD TRANSACTIONS FROM MYSQL
 
-                        case "Completed":
-                            badge.setStyle(badge.getStyle() +
-                                "-fx-background-color: #E4F2E8;" +
-                                "-fx-text-fill: #3D8054;");
-                            break;
+    private void loadTransactions() {
 
-                        case "Pending":
-                            badge.setStyle(badge.getStyle() +
-                                "-fx-background-color: #FFF2D8;" +
-                                "-fx-text-fill: #A87924;");
-                            break;
+        ObservableList<Transaction> transactions =
+                FXCollections.observableArrayList();
 
-                        case "Cancelled":
-                            badge.setStyle(badge.getStyle() +
-                                "-fx-background-color: #FBE7E4;" +
-                                "-fx-text-fill: #B44F43;");
-                            break;
+        String sql = """
+                SELECT
+                    t.id,
+                    t.tanggal,
+                    t.nama_customer,
+                    t.metode_pembayaran,
+                    t.total
+                FROM transaksi t
+                WHERE t.kafe_id = ?
+                ORDER BY t.tanggal DESC
+                """;
+
+        try (Connection connection =
+                     DatabaseConnection.getConnection()) {
+
+            if (connection == null) {
+
+                showAlert(
+                        Alert.AlertType.ERROR,
+                        "Database Connection Failed",
+                        "Tidak dapat terhubung "
+                                + "ke database MySQL."
+                );
+
+                return;
+            }
+
+            try (PreparedStatement statement =
+                         connection.prepareStatement(sql)) {
+
+                statement.setInt(1, kafeId);
+
+                try (ResultSet resultSet =
+                             statement.executeQuery()) {
+
+                    while (resultSet.next()) {
+
+                        int id =
+                                resultSet.getInt("id");
+
+                        String transactionId =
+                                String.format(
+                                        "TRX-%03d",
+                                        id
+                                );
+
+                        LocalDateTime dateTime =
+                                resultSet.getTimestamp(
+                                        "tanggal"
+                                ).toLocalDateTime();
+
+                        String formattedDate =
+                                dateTime.format(
+                                        dateFormatter
+                                );
+
+                        // CUSTOMER NAME
+
+                        String customerName =
+                                resultSet.getString(
+                                        "nama_customer"
+                                );
+
+                        if (customerName == null
+                                || customerName.isBlank()) {
+
+                            customerName =
+                                    "Walk-in Customer";
+                        }
+
+                        // PAYMENT METHOD
+
+                        String paymentMethod =
+                                resultSet.getString(
+                                        "metode_pembayaran"
+                                );
+
+                        if (paymentMethod == null
+                                || paymentMethod.isBlank()) {
+
+                            paymentMethod = "Cash";
+                        }
+
+                        // TOTAL AMOUNT
+
+                        double total =
+                                resultSet.getDouble(
+                                        "total"
+                                );
+
+                        String formattedAmount =
+                                "Rp "
+                                        + rupiahFormatter.format(
+                                                total
+                                        );
+
+                        // TRANSACTION STATUS
+
+                        String status =
+                                "Completed";
+
+                        Transaction transaction =
+                                new Transaction(
+                                        transactionId,
+                                        formattedDate,
+                                        customerName,
+                                        paymentMethod,
+                                        formattedAmount,
+                                        status
+                                );
+
+                        transactions.add(
+                                transaction
+                        );
                     }
-
-                    setText(null);
-                    setGraphic(badge);
                 }
             }
-        });
 
-        // SAMPLE TRANSACTION DATA
-        ObservableList<Transaction> transactions =
-            FXCollections.observableArrayList(
-
-                new Transaction("TRX-001", "19 Nov 2026, 09:15",
-                    "Sarah", "QRIS", "Rp 125.000", "Completed"),
-
-                new Transaction("TRX-002", "19 Nov 2026, 09:30",
-                    "Michael", "Cash", "Rp 85.000", "Pending"),
-
-                new Transaction("TRX-003", "19 Nov 2026, 10:05",
-                    "Jessica", "Debit Card", "Rp 210.000", "Completed"),
-
-                new Transaction("TRX-004", "19 Nov 2026, 10:20",
-                    "Daniel", "E-Wallet", "Rp 65.000", "Cancelled"),
-
-                new Transaction("TRX-005", "19 Nov 2026, 11:00",
-                    "Amanda", "QRIS", "Rp 150.000", "Completed"),
-
-                new Transaction("TRX-006", "19 Nov 2026, 11:35",
-                    "William", "Cash", "Rp 95.000", "Completed")
+            transactionTable.setItems(
+                    transactions
             );
 
-        transactionTable.setItems(transactions);
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+            showAlert(
+                    Alert.AlertType.ERROR,
+                    "Failed to Load Transactions",
+                    "Gagal mengambil data transaksi "
+                            + "dari database.\n"
+                            + e.getMessage()
+            );
+        }
+    }
+
+    // STATUS BADGES
+
+    private void setupStatusBadge() {
+
+        statusColumn.setCellFactory(
+                column ->
+                        new TableCell<Transaction, String>() {
+
+            @Override
+            protected void updateItem(
+                    String status,
+                    boolean empty) {
+
+                super.updateItem(
+                        status,
+                        empty
+                );
+
+                if (empty || status == null) {
+
+                    setGraphic(null);
+                    setText(null);
+
+                    return;
+                }
+
+                Label badge =
+                        new Label(status);
+
+                badge.setAlignment(
+                        Pos.CENTER
+                );
+
+                badge.setStyle(
+                        "-fx-padding: 6 12;"
+                                + "-fx-background-radius: 20;"
+                                + "-fx-font-size: 11px;"
+                                + "-fx-font-weight: bold;"
+                );
+
+                switch (status) {
+
+                    case "Completed":
+
+                        badge.setStyle(
+                                badge.getStyle()
+                                        + "-fx-background-color: #E4F2E8;"
+                                        + "-fx-text-fill: #3D8054;"
+                        );
+
+                        break;
+
+                    case "Pending":
+
+                        badge.setStyle(
+                                badge.getStyle()
+                                        + "-fx-background-color: #FFF2D8;"
+                                        + "-fx-text-fill: #A87924;"
+                        );
+
+                        break;
+
+                    case "Cancelled":
+
+                        badge.setStyle(
+                                badge.getStyle()
+                                        + "-fx-background-color: #FBE7E4;"
+                                        + "-fx-text-fill: #B44F43;"
+                        );
+
+                        break;
+                }
+
+                setText(null);
+                setGraphic(badge);
+            }
+        });
     }
 
     // EXPORT TRANSACTIONS TO CSV
+
     @FXML
     private void exportTransactions() {
 
-        FileChooser fileChooser = new FileChooser();
+        FileChooser fileChooser =
+                new FileChooser();
 
-        fileChooser.setTitle("Export Transactions");
+        fileChooser.setTitle(
+                "Export Transactions"
+        );
 
-        fileChooser.setInitialFileName("KAFEPOS_Transactions.csv");
+        fileChooser.setInitialFileName(
+                "KAFEPOS_Transactions.csv"
+        );
 
         fileChooser.getExtensionFilters().add(
-            new FileChooser.ExtensionFilter("CSV Files", "*.csv")
+                new FileChooser.ExtensionFilter(
+                        "CSV Files",
+                        "*.csv"
+                )
         );
 
-        File file = fileChooser.showSaveDialog(
-            transactionTable.getScene().getWindow()
-        );
+        File file =
+                fileChooser.showSaveDialog(
+                        transactionTable.getScene()
+                                .getWindow()
+                );
 
         if (file == null) {
             return;
@@ -167,55 +359,111 @@ public class TransactionsController {
 
         try {
 
-            StringBuilder csv = new StringBuilder();
+            StringBuilder csv =
+                    new StringBuilder();
 
-            // UTF-8 BOM for Excel compatibility
+            // UTF-8 BOM FOR EXCEL
+
             csv.append('\uFEFF');
 
-            csv.append("Transaction ID,Date & Time,Customer,")
-               .append("Payment Method,Amount,Status\n");
+            csv.append(
+                    "Transaction ID,"
+                            + "Date & Time,"
+                            + "Customer,"
+                            + "Payment Method,"
+                            + "Amount,"
+                            + "Status\n"
+            );
 
-            for (Transaction transaction : transactionTable.getItems()) {
+            for (Transaction transaction :
+                    transactionTable.getItems()) {
 
-                csv.append(escapeCsv(transaction.getTransactionId())).append(",");
-                csv.append(escapeCsv(transaction.getDateTime())).append(",");
-                csv.append(escapeCsv(transaction.getCustomer())).append(",");
-                csv.append(escapeCsv(transaction.getPaymentMethod())).append(",");
-                csv.append(escapeCsv(transaction.getAmount())).append(",");
-                csv.append(escapeCsv(transaction.getStatus())).append("\n");
+                csv.append(
+                        escapeCsv(
+                                transaction.getTransactionId()
+                        )
+                ).append(",");
+
+                csv.append(
+                        escapeCsv(
+                                transaction.getDateTime()
+                        )
+                ).append(",");
+
+                csv.append(
+                        escapeCsv(
+                                transaction.getCustomer()
+                        )
+                ).append(",");
+
+                csv.append(
+                        escapeCsv(
+                                transaction.getPaymentMethod()
+                        )
+                ).append(",");
+
+                csv.append(
+                        escapeCsv(
+                                transaction.getAmount()
+                        )
+                ).append(",");
+
+                csv.append(
+                        escapeCsv(
+                                transaction.getStatus()
+                        )
+                ).append("\n");
             }
 
-            Files.writeString(
-                file.toPath(),
-                csv.toString(),
-                StandardCharsets.UTF_8
+            java.nio.file.Files.writeString(
+                    file.toPath(),
+                    csv.toString(),
+                    StandardCharsets.UTF_8
             );
 
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Export Successful");
-            alert.setHeaderText("Transactions Exported!");
-            alert.setContentText(
-                "Your transaction data has been successfully saved."
+            showAlert(
+                    Alert.AlertType.INFORMATION,
+                    "Export Successful",
+                    "Data transaksi berhasil disimpan."
             );
-            alert.showAndWait();
 
         } catch (IOException e) {
 
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Export Failed");
-            alert.setHeaderText("Unable to export transactions");
-            alert.setContentText(e.getMessage());
-            alert.showAndWait();
+            showAlert(
+                    Alert.AlertType.ERROR,
+                    "Export Failed",
+                    e.getMessage()
+            );
         }
     }
 
-    // HANDLE CSV SPECIAL CHARACTERS
+    // CSV ESCAPE
+
     private String escapeCsv(String value) {
 
         if (value == null) {
             return "";
         }
 
-        return "\"" + value.replace("\"", "\"\"") + "\"";
+        return "\""
+                + value.replace("\"", "\"\"")
+                + "\"";
+    }
+
+    // ALERT
+
+    private void showAlert(
+            Alert.AlertType type,
+            String title,
+            String message) {
+
+        Alert alert =
+                new Alert(type);
+
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+
+        alert.showAndWait();
     }
 }
