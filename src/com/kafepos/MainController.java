@@ -1,3 +1,4 @@
+
 package com.kafepos;
 
 import java.io.IOException;
@@ -119,11 +120,15 @@ public class MainController {
             }
         }
 
+        // Mengenali role Cashier maupun kasir
         boolean isCashier = role != null
-                && role.trim().equalsIgnoreCase("Cashier");
+                && (
+                    role.trim().equalsIgnoreCase("Cashier")
+                    || role.trim().equalsIgnoreCase("kasir")
+                );
 
         // Owner dapat mengakses semua menu.
-        // Cashier hanya dapat mengakses menu operasional.
+        // Kasir hanya dapat mengakses menu operasional.
 
         setMenuAccess(productsButton, !isCashier);
         setMenuAccess(categoriesButton, !isCashier);
