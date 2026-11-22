@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox spacing="24"
+      style="-fx-background-color: #F5EFE6; -fx-padding: 32;"
+      xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.kafepos.OrdersController">
+
+    <!-- HEADER -->
+    <VBox spacing="6">
+        <Label text="Orders"
+               style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #2B211D;"/>
+
+        <Label text="Manage and monitor customer orders"
+               style="-fx-font-size: 13px; -fx-text-fill: #8B8179;"/>
+    </VBox>
+
+    <!-- SUMMARY CARDS -->
+    <HBox spacing="16">
+
+        <VBox spacing="10" HBox.hgrow="ALWAYS"
+              style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
+            <Label text="Total Orders"
+                   style="-fx-text-fill: #8B8179; -fx-font-size: 13px;"/>
+            <Label text="248"
+                   style="-fx-text-fill: #2B211D; -fx-font-size: 26px; -fx-font-weight: bold;"/>
+        </VBox>
+
+        <VBox spacing="10" HBox.hgrow="ALWAYS"
+              style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
+            <Label text="Pending Orders"
+                   style="-fx-text-fill: #8B8179; -fx-font-size: 13px;"/>
+            <Label text="28"
+                   style="-fx-text-fill: #C18A35; -fx-font-size: 26px; -fx-font-weight: bold;"/>
+        </VBox>
+
+        <VBox spacing="10" HBox.hgrow="ALWAYS"
+              style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 20;">
+            <Label text="Completed Orders"
+                   style="-fx-text-fill: #8B8179; -fx-font-size: 13px;"/>
+            <Label text="220"
+                   style="-fx-text-fill: #3D8054; -fx-font-size: 26px; -fx-font-weight: bold;"/>
+        </VBox>
+
+    </HBox>
+
+    <!-- ORDERS TABLE -->
+    <VBox spacing="18" VBox.vgrow="ALWAYS"
+          style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 24;">
+
+        <HBox alignment="CENTER_LEFT">
+            <Label text="All Orders"
+                   style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #2B211D;"/>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+           <HBox spacing="10">
+    <Button text="Edit Order"
+            onAction="#editOrder"
+            style="-fx-background-color: #E9DFD5; -fx-text-fill: #5B4030; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 10 18; -fx-cursor: hand;"/>
+
+    <Button text="Update Status"
+        onAction="#updateOrderStatus"
+        style="-fx-background-color: #E9DFD5; -fx-text-fill: #5B4030; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 10 18; -fx-cursor: hand;"/>
+        
+    <Button text="Delete"
+            onAction="#deleteOrder"
+            style="-fx-background-color: #FBE7E4; -fx-text-fill: #B44F43; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 10 18; -fx-cursor: hand;"/>
+
+    <Button text="＋ Add Order"
+            onAction="#addOrder"
+            style="-fx-background-color: #8B6B4F; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 10 18; -fx-cursor: hand;"/>
+</HBox>
+        
+        </HBox>
+
+      <HBox spacing="12">
+    <TextField fx:id="searchField"
+               promptText="Search order..."
+               HBox.hgrow="ALWAYS"
+               style="-fx-background-color: #F8F6F3; -fx-background-radius: 8; -fx-padding: 10;"/>
+
+    <ComboBox fx:id="statusFilter"
+              promptText="All Status"
+              prefWidth="150"
+              style="-fx-background-color: #F8F6F3; -fx-background-radius: 8;"/>
+</HBox>
+
+       
+<TableView fx:id="orderTable"
+           VBox.vgrow="ALWAYS"
+           style="-fx-background-radius: 8;">
+
+    <columns>
+        <TableColumn fx:id="orderIdColumn" text="Order ID" prefWidth="100"/>
+        <TableColumn fx:id="customerColumn" text="Customer" prefWidth="140"/>
+        <TableColumn fx:id="dateColumn" text="Date &amp; Time" prefWidth="150"/>
+        <TableColumn fx:id="itemsColumn" text="Items" prefWidth="80"/>
+        <TableColumn fx:id="totalColumn" text="Total" prefWidth="120"/>
+        <TableColumn fx:id="statusColumn" text="Status" prefWidth="120"/>
+    </columns>
+
+</TableView>
+
+    </VBox>
+
+</VBox>
