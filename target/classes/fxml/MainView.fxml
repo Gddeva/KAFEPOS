@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootLayout" prefHeight="800.0" prefWidth="1250.0" styleClass="app-root" stylesheets="@../css/style.css" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.kafepos.MainController">
+
+    <!-- TOP HEADER -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="12" styleClass="topbar">
+            <Label styleClass="brand-title" text="KAFEPOS" />
+            <Label styleClass="brand-subtitle" text="CAFE MANAGEMENT SYSTEM" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label styleClass="admin-label" text="Administrator" />
+        </HBox>
+    </top>
+
+    <!-- SIDEBAR -->
+    <left>
+        <VBox prefWidth="220" spacing="12" styleClass="sidebar">
+
+            <Label styleClass="sidebar-caption" text="MAIN MENU" />
+
+            <Button onAction="#showDashboard" styleClass="sidebar-button" text="Dashboard" />
+            <Button onAction="#showProducts" styleClass="sidebar-button" text="Products" />
+            <Button onAction="#showCategories" styleClass="sidebar-button" text="Categories" />
+            <Button onAction="#showTransactions" styleClass="sidebar-button" text="Transactions" />
+            <Button onAction="#showOrders" styleClass="sidebar-button" text="Orders" />
+            <Button onAction="#showReports" styleClass="sidebar-button" text="Reports" />
+            <Button fx:id="usersButton" onAction="#showUsers" styleClass="sidebar-button" text="Users" />
+            <Button onAction="#showSettings" styleClass="sidebar-button" text="Settings" />
+
+            <Region VBox.vgrow="ALWAYS" />
+
+            <Label styleClass="sidebar-footer" text="KAFEPOS  •  Version 1.0" />
+
+        </VBox>
+    </left>
+
+    <!-- DASHBOARD CONTENT -->
+    <center>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="main-scroll">
+
+            <content>
+                <VBox fillWidth="true" spacing="24" styleClass="dashboard-content">
+
+                    <!-- PAGE TITLE -->
+                    <VBox spacing="7">
+                        <Label styleClass="page-title" text="Dashboard Overview" />
+                        <Label styleClass="page-subtitle" text="Manage your cafe operations at a glance." />
+                    </VBox>
+
+                    <!-- STATISTIC CARDS -->
+                    <HBox spacing="18" styleClass="stats-row">
+
+                        <VBox spacing="10" styleClass="stat-card">
+                            <Label styleClass="stat-label" text="TOTAL SALES" />
+                            <Label styleClass="stat-value" text="Rp 12.500.000" />
+                            <Label styleClass="stat-note" text="+12.5% from last month" />
+                        </VBox>
+
+                        <VBox spacing="10" styleClass="stat-card">
+                            <Label styleClass="stat-label" text="TOTAL ORDERS" />
+                            <Label styleClass="stat-value" text="1.284" />
+                            <Label styleClass="stat-note" text="+8.2% from last month" />
+                        </VBox>
+
+                        <VBox spacing="10" styleClass="stat-card">
+                            <Label styleClass="stat-label" text="TOTAL PRODUCTS" />
+                            <Label styleClass="stat-value" text="156" />
+                            <Label styleClass="stat-note" text="Available in inventory" />
+                        </VBox>
+
+                        <VBox spacing="10" styleClass="stat-card">
+                            <Label styleClass="stat-label" text="TOTAL REVENUE" />
+                            <Label styleClass="stat-value" text="Rp 8.750.000" />
+                            <Label styleClass="stat-note" text="This month" />
+                        </VBox>
+
+                    </HBox>
+
+                    <!-- RECENT TRANSACTIONS -->
+                    <VBox maxWidth="Infinity" spacing="12" styleClass="content-section">
+
+                        <VBox spacing="5">
+                            <Label styleClass="section-title" text="Recent Transactions" />
+                            <Label styleClass="section-subtitle" text="A quick look at your latest cafe transactions." />
+                        </VBox>
+
+                        <TableView maxWidth="Infinity" prefHeight="270" styleClass="transaction-table">
+                            <placeholder>
+                                <Label text="No transactions available yet." />
+                            </placeholder>
+                            <columns>
+                                <TableColumn prefWidth="220" text="Transaction ID" />
+                                <TableColumn prefWidth="200" text="Date" />
+                                <TableColumn prefWidth="350" text="Customer" />
+                                <TableColumn prefWidth="300" text="Amount" />
+                            </columns>
+                        </TableView>
+
+                    </VBox>
+
+                    <!-- POPULAR PRODUCTS -->
+                    <VBox spacing="14" styleClass="content-section">
+
+                        <VBox spacing="5">
+                            <Label styleClass="section-title" text="Popular Products" />
+                            <Label styleClass="section-subtitle" text="Your cafe's best-selling menu items." />
+                        </VBox>
+
+                        <HBox spacing="18">
+
+                            <VBox spacing="9" styleClass="product-card">
+                                <Label styleClass="product-number" text="01" />
+                                <Label styleClass="product-name" text="Iced Americano" />
+                                <Label styleClass="product-detail" text="128 orders" />
+                            </VBox>
+
+                            <VBox spacing="9" styleClass="product-card">
+                                <Label styleClass="product-number" text="02" />
+                                <Label styleClass="product-name" text="Cafe Latte" />
+                                <Label styleClass="product-detail" text="96 orders" />
+                            </VBox>
+
+                            <VBox spacing="9" styleClass="product-card">
+                                <Label styleClass="product-number" text="03" />
+                                <Label styleClass="product-name" text="Chocolate Cake" />
+                                <Label styleClass="product-detail" text="74 orders" />
+                            </VBox>
+
+                        </HBox>
+
+                    </VBox>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+
+</BorderPane>
